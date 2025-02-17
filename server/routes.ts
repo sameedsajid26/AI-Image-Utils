@@ -55,11 +55,16 @@ export async function registerRoutes(app: Express) {
         case "generate":
           result = await hf.textGeneration({
             model: parsed.data.modelId,
-            inputs: parsed.data.input
+            inputs: parsed.data.input,
+            parameters: {
+              max_length: 100,
+              temperature: 0.7
+            }
           });
           break;
         case "sentiment":
-          result = await hf.sentimentAnalysis({
+          // Use textClassification instead of sentimentAnalysis
+          result = await hf.textClassification({
             model: parsed.data.modelId,
             inputs: parsed.data.input
           });
@@ -73,10 +78,14 @@ export async function registerRoutes(app: Express) {
         ...parsed.data,
         result
       });
-      
+
       res.json(operation);
-    } catch (error) {
-      res.status(500).json({ message: "Error processing request" });
+    } catch (error: any) {
+      console.error("Hugging Face API error:", error);
+      res.status(500).json({ 
+        message: "Error processing request",
+        details: error.message 
+      });
     }
   });
 

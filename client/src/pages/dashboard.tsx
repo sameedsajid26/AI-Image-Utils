@@ -9,7 +9,9 @@ import ResultDisplay from "@/components/result-display";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
 import { Operation, SUPPORTED_MODELS } from "@shared/schema";
+import { Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<keyof typeof SUPPORTED_MODELS>("caption");
@@ -31,10 +33,10 @@ export default function Dashboard() {
         description: "Operation completed successfully",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to process request",
+        description: error.message || "Failed to process request",
         variant: "destructive",
       });
     },
@@ -61,16 +63,43 @@ export default function Dashboard() {
       }
 
       const reader = new FileReader();
-      reader.onload = async (e) => {
-        mutation.mutate({
-          type: activeTab,
-          modelId: selectedModel,
-          input: e.target?.result
+
+      reader.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to read the selected file",
+          variant: "destructive",
         });
       };
+
+      reader.onload = async (e) => {
+        if (!e.target?.result) {
+          toast({
+            title: "Error",
+            description: "Failed to process the image",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        try {
+          mutation.mutate({
+            type: activeTab,
+            modelId: selectedModel,
+            input: e.target.result
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to process the image",
+            variant: "destructive",
+          });
+        }
+      };
+
       reader.readAsDataURL(selectedFile);
     } else {
-      if (!textInput) {
+      if (!textInput.trim()) {
         toast({
           title: "Error",
           description: "Please enter some text",
@@ -82,7 +111,7 @@ export default function Dashboard() {
       mutation.mutate({
         type: activeTab,
         modelId: selectedModel,
-        input: textInput
+        input: textInput.trim()
       });
     }
   };
@@ -90,62 +119,98 @@ export default function Dashboard() {
   return (
     <DashboardShell>
       <div className="max-w-4xl mx-auto space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">AI Swiss Army Knife</h1>
+          <p className="text-muted-foreground">
+            Process images and text using state-of-the-art AI models
+          </p>
+        </div>
+
         <Tabs value={activeTab} onValueChange={(v) => {
           setActiveTab(v as keyof typeof SUPPORTED_MODELS);
           setResult(null);
           setSelectedModel("");
+          setSelectedFile(null);
+          setTextInput("");
         }}>
-          <TabsList>
+          <TabsList className="grid grid-cols-2 lg:grid-cols-4">
             <TabsTrigger value="caption">Image Captioning</TabsTrigger>
             <TabsTrigger value="classify">Image Classification</TabsTrigger>
             <TabsTrigger value="generate">Text Generation</TabsTrigger>
             <TabsTrigger value="sentiment">Sentiment Analysis</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="caption" className="space-y-4">
-            <FileUpload
-              onFileSelect={setSelectedFile}
-              accept={{ "image/*": [] }}
-            />
-          </TabsContent>
+          <div className="mt-6">
+            {(activeTab === "caption" || activeTab === "classify") && (
+              <div className="space-y-2">
+                <FileUpload
+                  onFileSelect={(file) => {
+                    setSelectedFile(file);
+                    setResult(null);
+                  }}
+                  accept={{ "image/*": [] }}
+                />
+                {selectedFile && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {selectedFile.name}
+                  </p>
+                )}
+              </div>
+            )}
 
-          <TabsContent value="classify" className="space-y-4">
-            <FileUpload
-              onFileSelect={setSelectedFile}
-              accept={{ "image/*": [] }}
-            />
-          </TabsContent>
+            {(activeTab === "generate" || activeTab === "sentiment") && (
+              <div className="space-y-2">
+                <Textarea
+                  placeholder={activeTab === "generate" ? 
+                    "Enter text prompt..." : 
+                    "Enter text to analyze..."
+                  }
+                  value={textInput}
+                  onChange={(e) => {
+                    setTextInput(e.target.value);
+                    setResult(null);
+                  }}
+                  className="min-h-[100px]"
+                />
+              </div>
+            )}
+          </div>
 
-          <TabsContent value="generate" className="space-y-4">
-            <Textarea
-              placeholder="Enter text prompt..."
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-            />
-          </TabsContent>
+          <div className="mt-6 space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Model</label>
+              <ModelSelector
+                type={activeTab}
+                value={selectedModel}
+                onChange={setSelectedModel}
+              />
+            </div>
 
-          <TabsContent value="sentiment" className="space-y-4">
-            <Textarea
-              placeholder="Enter text to analyze..."
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-            />
-          </TabsContent>
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Process"
+              )}
+            </Button>
+          </div>
         </Tabs>
 
-        <ModelSelector
-          type={activeTab}
-          value={selectedModel}
-          onChange={setSelectedModel}
-        />
-
-        <Button
-          className="w-full"
-          onClick={handleSubmit}
-          disabled={mutation.isPending}
-        >
-          {mutation.isPending ? "Processing..." : "Process"}
-        </Button>
+        {mutation.isPending && (
+          <Card className="p-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Processing your request...
+            </p>
+          </Card>
+        )}
 
         {result && <ResultDisplay operation={result} />}
       </div>
