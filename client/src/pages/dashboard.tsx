@@ -126,7 +126,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => {
+        <Tabs defaultValue={activeTab} onValueChange={(v) => {
           setActiveTab(v as keyof typeof SUPPORTED_MODELS);
           setResult(null);
           setSelectedModel("");
@@ -140,42 +140,67 @@ export default function Dashboard() {
             <TabsTrigger value="sentiment">Sentiment Analysis</TabsTrigger>
           </TabsList>
 
-          <div className="mt-6">
-            {(activeTab === "caption" || activeTab === "classify") && (
-              <div className="space-y-2">
-                <FileUpload
-                  onFileSelect={(file) => {
-                    setSelectedFile(file);
-                    setResult(null);
-                  }}
-                  accept={{ "image/*": [] }}
-                />
-                {selectedFile && (
-                  <p className="text-sm text-muted-foreground">
-                    Selected: {selectedFile.name}
-                  </p>
-                )}
-              </div>
-            )}
+          <TabsContent value="caption">
+            <div className="space-y-2">
+              <FileUpload
+                onFileSelect={(file) => {
+                  setSelectedFile(file);
+                  setResult(null);
+                }}
+                accept={{ "image/*": [] }}
+              />
+              {selectedFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {selectedFile.name}
+                </p>
+              )}
+            </div>
+          </TabsContent>
 
-            {(activeTab === "generate" || activeTab === "sentiment") && (
-              <div className="space-y-2">
-                <Textarea
-                  placeholder={activeTab === "generate" ? 
-                    "Enter text prompt..." : 
-                    "Enter text to analyze..."
-                  }
-                  value={textInput}
-                  onChange={(e) => {
-                    setTextInput(e.target.value);
-                    setResult(null);
-                  }}
-                  className="min-h-[100px]"
-                />
-              </div>
-            )}
-          </div>
+          <TabsContent value="classify">
+            <div className="space-y-2">
+              <FileUpload
+                onFileSelect={(file) => {
+                  setSelectedFile(file);
+                  setResult(null);
+                }}
+                accept={{ "image/*": [] }}
+              />
+              {selectedFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {selectedFile.name}
+                </p>
+              )}
+            </div>
+          </TabsContent>
 
+          <TabsContent value="generate">
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Enter text prompt..."
+                value={textInput}
+                onChange={(e) => {
+                  setTextInput(e.target.value);
+                  setResult(null);
+                }}
+                className="min-h-[100px]"
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="sentiment">
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Enter text to analyze..."
+                value={textInput}
+                onChange={(e) => {
+                  setTextInput(e.target.value);
+                  setResult(null);
+                }}
+                className="min-h-[100px]"
+              />
+            </div>
+          </TabsContent>
           <div className="mt-6 space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Select Model</label>
