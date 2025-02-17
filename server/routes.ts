@@ -2,7 +2,10 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertOperationSchema, SUPPORTED_MODELS } from "@shared/schema";
-import { HfInference } from "@huggingface/inference";
+import { HfInference } from '@huggingface/inference';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const hf = new HfInference(process.env.HF_TOKEN);
 
