@@ -17,21 +17,14 @@ export const operations = pgTable("operations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertOperationSchema = z.object({
+  type: z.enum(["caption", "classify", "generate", "sentiment"]),
+  input: z.string(),
+  modelId: z.string(),
+  result: z.any()
 });
 
-export const insertOperationSchema = createInsertSchema(operations).pick({
-  type: true,
-  input: true,
-  modelId: true,
-  result: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertOperation = z.infer<typeof insertOperationSchema>;
-export type User = typeof users.$inferSelect;
 export type Operation = typeof operations.$inferSelect;
 
 export const SUPPORTED_MODELS = {

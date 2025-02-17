@@ -26,12 +26,15 @@ export async function registerRoutes(app: Express) {
   app.post("/api/operations", async (req, res) => {
     const parsed = insertOperationSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ message: "Invalid operation data" });
+      res.status(400).json({ 
+        message: "Invalid operation data",
+        details: parsed.error.message
+      });
       return;
     }
 
     // Validate model exists
-    const models = SUPPORTED_MODELS[parsed.data.type as keyof typeof SUPPORTED_MODELS];
+    const models = SUPPORTED_MODELS[parsed.data.type];
     if (!models.find(m => m.id === parsed.data.modelId)) {
       res.status(400).json({ message: "Invalid model" });
       return;
@@ -39,23 +42,29 @@ export async function registerRoutes(app: Express) {
 
     try {
       let result;
+      const input = parsed.data.input;
+
+      // For image operations, extract base64 data
+      const isImageOperation = parsed.data.type === "caption" || parsed.data.type === "classify";
+      const imageData = isImageOperation ? input.split(",")[1] : input;
+
       switch (parsed.data.type) {
         case "caption":
           result = await hf.imageToText({
             model: parsed.data.modelId,
-            data: parsed.data.input
+            data: Buffer.from(imageData, "base64")
           });
           break;
         case "classify":
           result = await hf.imageClassification({
             model: parsed.data.modelId,
-            data: parsed.data.input
+            data: Buffer.from(imageData, "base64")
           });
           break;
         case "generate":
           result = await hf.textGeneration({
             model: parsed.data.modelId,
-            inputs: parsed.data.input,
+            inputs: input,
             parameters: {
               max_length: 100,
               temperature: 0.7
@@ -63,10 +72,9 @@ export async function registerRoutes(app: Express) {
           });
           break;
         case "sentiment":
-          // Use textClassification instead of sentimentAnalysis
           result = await hf.textClassification({
             model: parsed.data.modelId,
-            inputs: parsed.data.input
+            inputs: input
           });
           break;
         default:
@@ -75,7 +83,9 @@ export async function registerRoutes(app: Express) {
       }
 
       const operation = await storage.createOperation({
-        ...parsed.data,
+        type: parsed.data.type,
+        input: parsed.data.input,
+        modelId: parsed.data.modelId,
         result
       });
 
