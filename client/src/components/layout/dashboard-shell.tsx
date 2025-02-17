@@ -11,12 +11,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">AI Swiss Army Knife</h1>
           <nav className="flex items-center gap-4">
-            <Link href="/">
-              <a className={location === "/" ? "font-bold" : ""}>Dashboard</a>
-            </Link>
-            <Link href="/history">
-              <a className={location === "/history" ? "font-bold" : ""}>History</a>
-            </Link>
+            <Button
+              variant={location === "/" ? "default" : "ghost"}
+              asChild
+            >
+              <Link href="/">Dashboard</Link>
+            </Button>
+            <Button
+              variant={location === "/history" ? "default" : "ghost"}
+              asChild
+            >
+              <Link href="/history">History</Link>
+            </Button>
           </nav>
         </div>
       </header>
